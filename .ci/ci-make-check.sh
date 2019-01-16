@@ -32,6 +32,12 @@ if [ "$DISTRO" != "" ] ; then
     if [ $tries != ${NUM_TRIES} ] ; then echo "tests failed, trying again!" ; fi
       false
   done
+  if [ "$1" = "exactness" ] ; then
+#docker exec  --env EIO_MONITOR_POLL=1 $(cat $HOME/cid) ninja -C build install
+    docker exec  --env EIO_MONITOR_POLL=1 $(cat $HOME/cid) sh -c 'cd /exactness-elm-data; git pull'
+    docker exec  --env EIO_MONITOR_POLL=1 $(cat $HOME/cid) sh -c 'cd /exactness-elm-data; git checkout origin/devs/stefan/init-shots-docker-travis-ci -b docker'
+    docker exec  --env EIO_MONITOR_POLL=1 --env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/lib64  $(cat $HOME/cid) EINA_LOG_LEVELS_GLOB=eina_*:0,ecore*:0,efreet*:0,eldbus:0,elementary:0 exactness -j 20 -b /exactness-elm-data/default-profile -p /exactness-elm-data/default-profile/tests.txt
+  fi
 fi
 ret=$?
 travis_endfold check
