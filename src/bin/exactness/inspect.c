@@ -13,6 +13,7 @@
 #include <Ecore_Evas.h>
 #include <Elementary.h>
 #include <Exactness.h>
+#include <Efl_Ui.h>
 
 #include "exactness_private.h"
 
@@ -942,7 +943,7 @@ _gl_img_show(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
    Exactness_Image *ex_img = data;
    if (_img_win) efl_del(_img_win);
    _img_win = efl_add(EFL_UI_WIN_CLASS, elm_win_get(obj),
-         efl_ui_win_type_set(efl_added, EFL_UI_WIN_DIALOG_BASIC),
+         efl_ui_win_type_set(efl_added, EFL_UI_WIN_TYPE_DIALOG_BASIC),
          efl_ui_win_autodel_set(efl_added, EINA_TRUE));
    efl_wref_add(_img_win, &_img_win);
 

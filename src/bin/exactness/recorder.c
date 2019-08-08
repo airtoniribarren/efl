@@ -132,7 +132,7 @@ _event_pointer_cb(void *data, const Efl_Event *event)
       case EFL_POINTER_ACTION_MOVE:
           {
              double rad = 0, radx = 0, rady = 0, pres = 0, ang = 0, fx = 0, fy = 0;
-             int tool = efl_input_pointer_tool_get(evp);
+             int tool = efl_input_pointer_touch_id_get(evp);
              Eina_Position2D pos = efl_input_pointer_position_get(evp);
              Exactness_Action_Multi_Move t = { tool, pos.x, pos.y, rad, radx, rady, pres, ang, fx, fy };
              if (n_evas >= 0) _add_to_list(evt, n_evas, timestamp, &t, sizeof(t));
@@ -142,7 +142,7 @@ _event_pointer_cb(void *data, const Efl_Event *event)
           {
              double rad = 0, radx = 0, rady = 0, pres = 0, ang = 0, fx = 0, fy = 0;
              int b = efl_input_pointer_button_get(evp);
-             int tool = efl_input_pointer_tool_get(evp);
+             int tool = efl_input_pointer_touch_id_get(evp);
              Eina_Position2D pos = efl_input_pointer_position_get(evp);
              Efl_Pointer_Flags flags = efl_input_pointer_button_flags_get(evp);
              Exactness_Action_Multi_Event t = { tool, b, pos.x, pos.y, rad, radx, rady, pres, ang,
@@ -209,9 +209,9 @@ _event_key_cb(void *data, const Efl_Event *event)
      {  /* Construct duplicate strings, free them when list if freed */
         Exactness_Action_Key_Down_Up t;
         t.keyname = eina_stringshare_add(key);
-        t.key = eina_stringshare_add(efl_input_key_get(evk));
+        t.key = eina_stringshare_add(efl_input_key_sym_get(evk));
         t.string = eina_stringshare_add(efl_input_key_string_get(evk));
-        t.compose = eina_stringshare_add(efl_input_key_compose_get(evk));
+        t.compose = eina_stringshare_add(efl_input_key_compose_string_get(evk));
         t.keycode = efl_input_key_code_get(evk);
         _add_to_list(evt, n_evas, timestamp, &t, sizeof(t));
      }
