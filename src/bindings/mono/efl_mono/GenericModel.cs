@@ -33,7 +33,7 @@ public class GenericModel<T> : Efl.Object, Efl.IModel
    /// <summary>The list of properties available in the wrapped model.</summary>
    public IEnumerable<System.String> Properties
    {
-      get { return GetProperties(); }
+       get { return new System.Collections.Generic.List<System.String>(); }
    }
 
    /// <summary>The number of children in the wrapped model.</summary>
@@ -44,17 +44,36 @@ public class GenericModel<T> : Efl.Object, Efl.IModel
 
    /// <summary>The list of properties available in the wrapped model.</summary>
    /// <returns>The list of properties in the model.</returns>
-   public IEnumerable<System.String> GetProperties()
-   {
-       return model.GetProperties();
-   }
+   // public IEnumerable<System.String> GetProperties()
+   // {
+   //     return model.GetProperties();
+   // }
 
    /// <summary>Gets the value of the given property in the wrapped model.</summary>
    /// <param name="property">The property of the model.</param>
    /// <returns>The value of the property.</returns>
-   public Eina.Value GetProperty(System.String property)
+   class PropertyIndexer : Efl.IModelPropertyIndexer
    {
-       return model.GetProperty(property);
+       public Efl.IModel Self { get; set; }
+       public Eina.Value this[System.String i]
+       {
+           get
+           {
+               return Self.Property[i];
+           }
+       }
+   }
+
+   public Efl.IModelPropertyIndexer Property
+   {
+       get
+       {
+           var p = new PropertyIndexer();
+           p.Self = this;
+           return p;
+       }
+       set
+       {}
    }
 
    /// <summary>Sets the value of the given property in the given model.</summary>
@@ -71,7 +90,7 @@ public class GenericModel<T> : Efl.Object, Efl.IModel
    /// <returns>The number of children.</returns>
    public uint GetChildrenCount()
    {
-       return model.GetChildrenCount();
+       return 0;
    }
 
    /// <summary>Returns an <see cref="Eina.Future" /> that will resolve when the property is ready to be read.</summary>

@@ -195,18 +195,29 @@ bool inherits_from(attributes::klass_def const& cls, std::string const& name)
  * Gets all methods that this class should implement (i.e. that come from an unimplemented interface/mixin and the class itself)
  */
 template<typename Context>
-std::vector<attributes::function_def> get_all_implementable_methods(attributes::klass_def const& cls, Context const& context)
+std::vector<attributes::function_def> get_all_implementable_methods(attributes::klass_def const& cls, Context const& context
+                                                                    , bool insert_properties = false)
 {
    bool want_beta = efl::eolian::grammar::context_find_tag<options_context>(context).want_beta;
    std::vector<attributes::function_def> ret;
-   auto filter_beta = [&want_beta](attributes::function_def const& func) {
+   auto filter = [&](attributes::function_def const& func) {
        if (!want_beta)
-         return !func.is_beta;
+         return !func.is_beta
+           && (
+               insert_properties
+               ? true
+               :
+               !(func.type == attributes::function_type::property
+                 || func.type == attributes::function_type::prop_set
+                 || func.type == attributes::function_type::prop_get));
        else
-         return true;
+         return insert_properties ? true
+           : !(func.type == attributes::function_type::property
+               || func.type == attributes::function_type::prop_set
+               || func.type == attributes::function_type::prop_get);
    };
 
-   std::copy_if(cls.functions.begin(), cls.functions.end(), std::back_inserter(ret), filter_beta);
+   std::copy_if(cls.functions.begin(), cls.functions.end(), std::back_inserter(ret), filter);
 
    // Non implemented interfaces
    std::set<attributes::klass_name, attributes::compare_klass_name_by_name> implemented_interfaces;
@@ -243,7 +254,66 @@ std::vector<attributes::function_def> get_all_implementable_methods(attributes::
     for (auto&& inherit : interfaces)
     {
         attributes::klass_def klass(get_klass(inherit, cls.unit), cls.unit);
-        std::copy_if(klass.functions.cbegin(), klass.functions.cend(), std::back_inserter(ret), filter_beta);
+        std::copy_if(klass.functions.cbegin(), klass.functions.cend(), std::back_inserter(ret), filter);
+    }
+
+  return ret;
+}
+
+/*
+ * Gets all methods that this class should implement (i.e. that come from an unimplemented interface/mixin and the class itself)
+ */
+template<typename Context>
+std::vector<attributes::property_def> get_all_implementable_properties(attributes::klass_def const& cls, Context const& context)
+{
+   bool want_beta = efl::eolian::grammar::context_find_tag<options_context>(context).want_beta;
+   std::vector<attributes::property_def> ret;
+   auto filter_beta = [&want_beta](attributes::property_def const& prop) {
+       if (!want_beta)
+         return (!prop.getter || !prop.getter->is_beta)
+           && (!prop.setter || !prop.setter->is_beta);
+       else
+         return true;
+   };
+
+   std::copy_if(cls.properties.begin(), cls.properties.end(), std::back_inserter(ret), filter_beta);
+
+   // Non implemented interfaces
+   std::set<attributes::klass_name, attributes::compare_klass_name_by_name> implemented_interfaces;
+   std::set<attributes::klass_name, attributes::compare_klass_name_by_name> interfaces;
+   std::function<void(attributes::klass_name const&, bool)> inherit_algo =
+       [&] (attributes::klass_name const &klass, bool is_implemented)
+       {
+           attributes::klass_def c(get_klass(klass, cls.unit), cls.unit);
+           for (auto&& inherit: c.immediate_inherits)
+             {
+                switch(inherit.type)
+                  {
+                  case attributes::class_type::mixin:
+                  case attributes::class_type::interface_:
+                    interfaces.insert(inherit);
+                    if (is_implemented)
+                      implemented_interfaces.insert(inherit);
+                    inherit_algo(inherit, is_implemented);
+                    break;
+                  case attributes::class_type::abstract_:
+                  case attributes::class_type::regular:
+                    inherit_algo(inherit, true);
+                  default:
+                    break;
+                  }
+             }
+       };
+
+   inherit_algo(attributes::get_klass_name(cls), false);
+
+   for (auto&& inherit : implemented_interfaces)
+     interfaces.erase(inherit);
+
+    for (auto&& inherit : interfaces)
+    {
+        attributes::klass_def klass(get_klass(inherit, cls.unit), cls.unit);
+        std::copy_if(klass.properties.cbegin(), klass.properties.cend(), std::back_inserter(ret), filter_beta);
     }
 
   return ret;
@@ -273,6 +343,10 @@ std::vector<attributes::function_def> get_all_registerable_methods(attributes::k
 
                     if (cls == func.klass)
                       return true;
+                    if (func.type == attributes::function_type::property
+                        || func.type == attributes::function_type::prop_set
+                        || func.type == attributes::function_type::prop_get)
+                      return false;
 
                     if (is_managed_interface(func.klass) && func.is_static)
                       return true;
